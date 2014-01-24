@@ -6,7 +6,6 @@ import numpy as np
 from sklearn.datasets import dump_svmlight_file
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import Pipeline
 
 
 class TweetClassifier(object):
