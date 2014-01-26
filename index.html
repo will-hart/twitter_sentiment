@@ -1,25 +1,30 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Test</title>
+    <head>
+        <title>Check a tweet</title>
+    </head>
+    <body>
+        <input type="text" value="You are an awesome person" id="phrase" />
+        <button id="check_phrase">Check</button>
 
+        <hr>
 
-</head>
-<body>
-    <input type="text" value="You are an awesome person" id="phrase" />
-    <button id="check_phrase">Check</button>
+        <div id="result"></div>
 
-    <hr>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js" type="text/javascript"></script>
 
-    <div id="result"></div>
-
-    <script src="js/sentiment.js" type="text/javascript"></script>
-    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js" type="text/javascript"></script>
-
-    <script type="text/javascript">
-        $("#check_phrase").click(function() {
-            $("#result").html(window.test_sentiment($("#phrase").val()));
-        });
-    </script>
-</body>
+        <script type="text/javascript">
+            $("#check_phrase").click(function() {
+                $.post({
+                    url: 'http://127.0.0.1/',
+                    data: {
+                        "tweet": $("#phrase").val()
+                    },
+                    success: function(data, status, xhr) {
+                        $("#result").html(data);
+                    }
+                });
+            });
+        </script>
+    </body>
 </html>
