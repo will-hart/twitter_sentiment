@@ -11,7 +11,7 @@ def run_test(val, expected):
 
 # Start by gathering some data.
 g = GatherData()
-
+"""
 # If we have an existing training set, this becomes the new test set (just for variety)
 if os.path.isfile("train_data.txt"):
     print "Old training data is the new test data..."
@@ -26,11 +26,13 @@ else:
 print "Gathering training data..."
 g.gather_tweets()
 g.write_tweets("train_data.txt")
+"""
 
 # train the classifier
 print "Training the classifier..."
 t = TC("train_data.txt")
 t.train()
+print t.probabilities.shape
 
 # test the classifier
 print "Testing the classifier..."
