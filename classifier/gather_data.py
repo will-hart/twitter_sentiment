@@ -68,20 +68,23 @@ class GatherData(object):
 
         return listener.results
 
-    def gather_tweets(self, num_good=100, num_bad=20):
+    def gather_tweets(self, num_good=100, num_bad=150):
         """
         Queries the twitter API for a number of "good and bad" tweets,
         """
 
         # hackish "random" method because stream.sample() 401s like a boss
-        self.good = self.search_tweets("emberjs", 20)
-        self.good += self.search_tweets("nba", 20)
-        self.good += self.search_tweets("superbowl", 20)
-        self.good += self.search_tweets("science", 20)
-        self.good += self.search_tweets("bieber", 20)
+        self.good = self.search_tweets("emberjs", 200)
+        self.good += self.search_tweets("nba", 200)
+        self.good += self.search_tweets("superbowl", 200)
+        self.good += self.search_tweets("science", 200)
+        self.good += self.search_tweets("bieber", 200)
+        self.good += self.search_tweets("NASA", 200)
+        self.good += self.search_tweets("forest", 200)
         #self.good = self.get_recent_tweets(num_good)
 
-        self.bad = self.search_tweets("star wars", num_bad)
+        self.bad = self.search_tweets("star wars", 200)
+        self.bad += self.search_tweets("#starwars", 200)
 
     def write_tweets(self, path):
         """
