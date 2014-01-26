@@ -22,8 +22,10 @@ class TweetClassifier(object):
         self.results = []
         self.tweets = []
         self.vocab = {}
-        self.classifier = None
         self.probabilities = []
+        self.vectoriser = None
+        self.transformer = None
+        self.classifier = None
 
     def load_dataset(self, path=None):
         """
