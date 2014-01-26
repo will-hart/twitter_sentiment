@@ -1,2 +1,4 @@
 .idea/
 *.pyc
+
+classifier/local_settings.py
