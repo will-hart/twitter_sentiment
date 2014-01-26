@@ -70,7 +70,7 @@ class TweetClassifier(object):
         # use a multinomial classifier to generate probabilities
         self.classifier = MultinomialNB()
         self.classifier.fit(res, expected)
-        self.probabilities = self.classifier.predict_proba(res)
+        self.probabilities = self.classifier.feature_log_prob_
 
     def predict(self, tweet):
         """
@@ -79,5 +79,4 @@ class TweetClassifier(object):
         tweets = [tweet]
         tweet_vec = self.vectoriser.transform([tweet])
         tweet_tf = self.transformer.transform(tweet_vec)
-        prediction = self.classifier.predict(tweet_tf)
-        return prediction
+        return self.classifier.predict(tweet_tf)[0]
