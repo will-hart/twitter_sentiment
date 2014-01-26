@@ -1,4 +1,4 @@
-> This is an article written for www.WilliamHart.info
+> This is an article written for www.WilliamHart.info.  MathJax included in the README will not correctly render in the browser.
 
 # Cleaning up Twitter
 
@@ -104,17 +104,13 @@ From looking at some of these made up examples, it is clear that this problem is
  - without context, how do we know if "Episode 1 is horrendous" is Star Wars based?
  - Other tweets such as the last one talk about "star" and "wars" but are not related to "Star Wars" - only by reading the context and proximity of words can we work out whether this tweet should count
 
-This is a weakness of the "bag of words" approach, and can easily lead to "false positives", where we incorrectly identify a tweet as "Star Warsy" when in fact it is not or "false negatives" where we say a tweet is not related to Star Wars when it is.  
+This is a weakness of the "bag of words" approach we are using here, and can easily lead to "false positives" - where we incorrectly identify a tweet as "Star Warsy" - or "false negatives" - where we say a tweet is not related to Star Wars when it is.   Whilst a percentage of false positives is probably unavoidable, the objective is to improve the accuracy as much as possible so that these false classifications are the exception rather than the rule.  In general a larger training dataset will make the classifier more likely to correctly group our tweets.  
 
-Whilst a percentage of false positives is unavoidable, the objective is to improve the accuracy as much as possible so that these false classifications are the exception rather than the rule.  In general a larger training dataset, the more likely it is that the algorithm will correctly classify our tweets.  
-
-A review of the equation shows that apart from being a result of multiplying the conditional probabilities together, the result is also reliant on the probability that a tweet is good or bad - $P(y)$.  This means that we should ensure the dataset is representative of real life data - if we increase the number of bad tweets in our training dataset then we increase the likelihood the algorithm will classify a tweet as bad as $P(y)$ will be higher than it is in real life.
+The training set should be as large as possible but also as close to "reality" as possible. For instance, a review of the equations above show that the final classification is also dependent on the probability that a tweet is good or bad - $P(y)$.  This means that we should ensure the dataset is representative of real life data - if we increase the proportion of bad tweets in our training dataset then we increase the likelihood the algorithm will classify a tweet as bad.  
 
 ### Gathering the data
 
-In a real life situation we would probably need to gather *thousands* of sets of training data, manually classify each one and then split this data into training and testing data sets.  This task would be quite time intensive.  Luckily this is just a demonstration so we can create a basic twitter API script in Python to do this task for us.  
-
-There are quite a few different twitter APIs written in Python, but the one that seemed to work the best for me was `tweepy`.  I installed this in the usual way (`pip install tweepy`) and then wrote some very simple code to search for tweets. 
+In a real life situation we would probably need to gather *thousands* of tweets, manually classify each one and then split this data into training and testing data sets.  This task would be quite time intensive.  Luckily for a demonstration like this we can create a basic twitter API script in Python to do a good approximation of this task for us.  There are quite a few different twitter APIs written in Python, but the one that seemed to work the best for me was `tweepy`.  I installed this in the usual way (`pip install tweepy`) and then wrote some very simple code to search for tweets. 
 
     from tweepy import API as TweepyApi, OAuthHandler
 
@@ -134,15 +130,17 @@ There are quite a few different twitter APIs written in Python, but the one that
 		result = api.search(q=search, count=count, lang='en')
 		return [x.text.encode('ascii', 'ignore').replace('\n', '') for x in result]
 
-Then to get a certain number of tweets about a certain topic, I can just run the following in Python code:
+`MY_SETTINGS` is a dictionary I imported from another file with my API credentials - so that they are hidden from github.  To get 20 tweets about star wars, I can run the following:
 
     star_wars_tweets = search_tweets("star wars", 20)
 
-I played around with the streaming `sample()` API for getting random tweets but found that no matter what I did it denied my credentials.  As a result I just decided to get some random tweets for "emberjs", "nba", "superbowl", "science" and "bieber" for the "good" data.  Wrapping this code in a class and adding some helper functions I was able to generate 100 good tweets and 20 bad tweets in very short order.  Performing this function twice let me generate a set of training and test data.
+This takes care of the bad tweets.  To get the "good" tweets, we need a wide sampling of random tweets.  I played around with the streaming `sample()` API but found that no matter what I did it denied my credentials - maybe I'm missing something obvious? In the end I just decided to get some tweets for a few unrelated topics such as "emberjs", "nba", "superbowl", "science" and "bieber".  Whilst this data set will be definition be incomplete (and reduce accuracy) its a simple way to get enough data for a proof of concept. 
+
+By wrapping this code in a class and adding some helper functions I was able to generate several hundred good tweets and 200 bad tweets in very short order.  I could repeat this process (after a short break to allow new tweets to accumulate) to get another bunch of test data. 
 
 ### Building the classifier
 
-Lets start with some code.  Using `scikit-learn`, building a classifier is very simple:
+The next step was to build the classifier itself.  Lets jump straight into some code. 
 
 	import numpy as np
 	from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
@@ -169,41 +167,41 @@ Lets start with some code.  Using `scikit-learn`, building a classifier is very 
         self.classifier.fit(res, expected)
 
 
-Three main steps apply as noted in the comments:
+Using `scikit-learn`, building a classifier is very simple, and only three main steps were required.
 
 1. We 'vectorise' the text using a `CountVectorizer`.  In English this means that we count the number of times each word appears in the tweets and create a dictionary with the word as a key and the count as the value.
 2. We 'transform' the data using the `TfidfTransformer`.  This is a useful operation to apply for text analysis - it basically accounts for the fact that words will be more frequent in longer tweets, and some words are popular in both "good" and "bad" tweets.  Clearly the length issue is not too much of a problem with tweets given the character limit, but the "idf" part (Inverse Document Frequency) reduces the impact of words that are common in both types of tweets.
 3. We train the classifier using a `MultinomialNB` (Multinomial Naive Bayes) classifer.  This uses our training set to calculate the probability table we discussed earlier.
 
-The `load_dataset()` method simply takes a text file and generates a list, with each item being a tweet or  a 0/1 indicating if it is good or bad.  The `expected` variable is a `numpy` array.  
+The `load_dataset()` method simply takes a text file and generates a list, with each item being a tweet or  a 0/1 indicating if it is good or bad.  The `expected` variable is a `numpy` array.  It is possible to combine the three steps into a single `Pipeline`, however I found that it was easier to implement `load_dataset` as a generator when I did not - making it easier to parse larger files.
 
 ### Testing the classifier
 
-With these 20 or so lines we have built a Naive Bayes classifier. We can test the classifier by doing the following:
+With these 20 or so lines we have built a Naive Bayes classifier. We can test the classifier (once trained) on a single tweet by doing the following:
 
     classifier.predict("A tweet about Star Wars")
 
-We can write a quick script in the command line that gathers the training and test data, trains the classifier and then runs the test data, calculating results.  Running this four times from the command line I got:
+Putting together a quick script made it simple to gather the training and test data, train the classifier and then run the test data, displaying results.  Running this four times I got:
 
     Tested 120 tweets, got 102 correct (85%)
 	Tested 120 tweets, got 109 correct (91%)
 	Tested 120 tweets, got 117 correct (98%)
     Tested 120 tweets, got 113 correct (94%)
 
-The number presumable improved where there were more similar tweets in the two datasets (i.e. if I ran the commands in quick succession then there was more duplication between the test and training set and hence a higher accuracy).  Despite this, 85-90% seems to be a fairly good estimate of accuracy even with such a small training set.
+The number presumably improved where there were more similar tweets in the two datasets (i.e. if I ran the commands in quick succession then there was more duplication between the test and training set and hence a higher accuracy).  Despite this, 85-90% seems to be a fairly good accuracy with such a small training set.
 
 ## Validating tweets
 
 ### Client side?
 
-Having demonstrated that we can (with relatively good accuracy) classify Star Wars tweets using Python and `scikit-learn`, we need to find a way to integrate it with Twitter.  One potential way would be to use a javascript client side library that would test the tweet as it was written.  This javascript would work undertake the following steps:
+Having demonstrated that we can (with relatively good accuracy) classify Star Wars tweets using Python and `scikit-learn`, we need to find a way that it could be integrated with Twitter.  One option would be to use a javascript client side library that would test the tweet as it was typed.  This javascript would undertake the following steps:
 
-1. "Vectorise" the tweet, breaking into words and counting
-2. Use the static probability matrix, multiplying the required values to generate a probability of "good" ($P(good)$) and a probability of "bad" ($P(bad)$)
-3. If $P(good) >= P(bad)$ then the tweet is good, and conversely if $P(bad) > P(good)$ then the tweet is good
+1. "Vectorise" the tweet, breaking into words and counting occurrences
+2. Use a static probability matrix, multiplying the required values to generate a probability of "good" ($P(good)$) and a probability of "bad" ($P(bad)$)
+3. If $P(good) >= P(bad)$ then the tweet is good, and conversely if $P(bad) > P(good)$ then the tweet is bad
 4. Display a warning if the tweet is bad
 
-We can access the probability matrix generated by `scikit-learn`
+We can access the probability matrix generated by `scikit-learn` to save to file by running
 
     classifier.feature_log_prob_
 
@@ -211,17 +209,15 @@ The big issue here is that for our test simple dataset this array was 2 rows, 77
 
     print classifier.feature_log_prob_.shape
 
-Assuming 1 byte per row and a precision of 10 bytes with two bytes additional punctuation, even this simple matrix gives us a file size of:
+Once our matrix is stored in an ASCII encoded file, we can estimate how much download bandwidth it would take up.  Assuming 1 byte per character and with each probability having a length of 12 bytes including punctuation, the simple matrix generated from our training set above gives us a file size of around 20kB:
 
-$$1\text{ byte}\times(10+2)\text{ characters}\times2\text{ rows}\times773\text{ columns} = 18,552\text{ bytes}$$
+$$1\text{ byte}\times12\text{ characters}\times2\text{ rows}\times773\text{ columns} = 18,552\text{ bytes}$$
 
-To perform this operation client side, we would therefore need to download about 20kB of probability matrix.  This alone makes client side validation unlikely to work.
+To perform this operation client side, we would therefore need to download at least 20kB of probability matrix.  Given the emphasis placed on minimising download amounts, this makes client side validation unlikely to be viable.
 
 ### Server side
 
-Another approach would be to use a simple web service approach, where the tweet could be periodically `POST`ed to the server and analysed, and the web service could return "0" if the tweet is good, or "1" if the tweet is considered bad.  This is pretty similar to the spam detection services offered by companies such as Askimet.
-
-In Python, something like this is very implemented with one of the many light weight web frameworks such as Tornado or Flask.  A flask app which performed this could be as simple as the following (where the `TweetClassifier` is a class implementing our classification code above):
+Another approach would be to use a simple web service approach, where the tweet could be periodically sent to the server and analysed, and the web service could return "0" if the tweet is classified as good, or "1" if the tweet is bad.  This is pretty similar to the spam detection services offered by companies such as Askimet.  In Python, something like this is very implemented with one of the many light weight web frameworks such as Tornado or Flask.  A flask app which performed this could be as simple as the following (where the `TweetClassifier` is a class implementing our classification code above):
 	
 	from flask import Flask, request
 	from flask_cors import cross_origin
@@ -229,7 +225,7 @@ In Python, something like this is very implemented with one of the many light we
 	
 	from tweet_classifier import TweetClassifier
 	
-	app =  Flask(__name__)
+	app = Flask(__name__)
 	classifier = TweetClassifier()
 	
 	if not os.path.isfile("train_data.txt"):
@@ -248,7 +244,7 @@ If this was saved in a file called `run_server.py`, setting up the server would 
 
     python run_server.py
 
-The code above would set up a `route`, or a "web page" which would answer `POST` requests to the url `/` (e.g. `http://127.0.0.1/`) and return a response with `0` or `1`.  This code can be tested through a simple `index.html` page (assuming the server is running at `127.0.0.1`):
+The code above would set up a `route`, or a "web page" which would answer `GET` requests to the url `/` (e.g. `http://127.0.0.1/`) and return a response with `0` or `1`.  A simple `index.html` page (assuming the server is running at `127.0.0.1`) would look like the following, using jQuery for the AJAX request:
 
 	<!DOCTYPE html>
 	<html>
@@ -300,12 +296,16 @@ Some false negatives were also found due to only 200 "bad" tweets being used:
 
 > 3PO is a robot
 
-In general, however the method, in a few short hours of work, produced something that could detect well over half of Star Wars related tweets that I typed in.  Accuracy could be improved by gathering a broader range of random tweets (presuming that the Twitter streaming API could be made to return anything other than a 401 response code) or by cherry picking on Star Wars related terms.  It is also possible that detecting abusive tweets could easier given a lot of the words employed would be rarely used in every day tweets.  
+Despite these issues, the method produced something that could detect well over half of Star Wars related tweets that I typed in in only a few hours of work.  Accuracy could be improved by gathering a broader range of random tweets (presuming that the Twitter streaming API can be made to return anything other than a 401 response code!) or by cherry picking and searching specific Star Wars related terms where performance is poor.  It is also possible that detecting abusive tweets could be a little easier given certain words are exceedingly common in these types of tweets but not in everyday speech.  
+
+Additionally the use of N-grams, which are very short phrases could also improve the algorithm.  For instance a tweet could possibly include a phrase such as "this millennium I want to fly a falcon" and not be related to Star Wars, whilst a tweet "I like the Millennium Falcon" is far more likely to be related.  
 
 ## Effectiveness
 
 The best that could be hoped from a system like this is that it would reduce "casual" abuse, or at the very least make people think twice before sending a horrible tweet.  For many on the edge of society it is likely that a visual warning would provide no deterrence whatsoever.  
 
-Additionally, the performance impact on a high volume site such as Twitter would be considerable.  Something like 400 million tweets a day are made, and for each one to be passed through an "abuse" web service would require considerable financial investment in terms of servers, support and so on.  A client side approach is technically feasible but unlikely to work given the large probability matrix that would need to be downloaded in order for it to work. 
+Additionally, the performance impact on a high volume site such as Twitter would be considerable.  Something like 400 million tweets a day are made, and for each one to be passed through an "abuse" web service would require considerable financial investment in terms of servers, support and so on.  A client side approach is technically feasible but unlikely to work given the large probability matrix that would need to be downloaded in order for it to work.  A quick bit of research shows that a number of sentiment analysis APIs already exist on-line, some are listed in [this blog post](http://blog.mashape.com/post/48757031167/list-of-20-sentiment-analysis-apis).   
 
-All in all, as an investigation of sentiment analysis and Naive Bayes methods the approach was a success but in terms of making a real dent in online abuse it is unlikely to provide any great benefits. 
+All in all, as an investigation of sentiment analysis and Naive Bayes methods the approach was a success but in terms of making a real dent in on-line abuse, sadly it seems unlikely to provide any great benefits. 
+
+> The full source code of the application and the article can be found at [https://github.com/will-hart/twitter_sentiment](https://github.com/will-hart/twitter_sentiment)
