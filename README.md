@@ -1,4 +1,4 @@
-> This is an article written for my blog site [WilliamHart.info](http://www.williamhart.info/reducing-online-abuse-through-sentiment-analysis.html).  If viewed through github the maths will not render correctly - follow the link above to the blog post to see the properly formatted article.
+> This is an article written for [my blog site](https://willhart.io/reducing-online-abuse-through-sentiment-analysis/).  If viewed through github the maths will not render correctly - follow the link above to the blog post to see the properly formatted article.
 
 title: Reducing online abuse through sentiment analysis
 subtitle: A technique to detect abusive tweets
